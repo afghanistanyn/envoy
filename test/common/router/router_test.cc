@@ -37,7 +37,8 @@ public:
   // Filter
   RetryStatePtr createRetryState(const RetryPolicy&, Http::HeaderMap&, const Upstream::ClusterInfo&,
                                  Runtime::Loader&, Runtime::RandomGenerator&, Event::Dispatcher&,
-                                 Upstream::ResourcePriority) override {
+                                 Upstream::ResourcePriority,
+                                 Http::StreamDecoderFilterCallbacks&) override {
     EXPECT_EQ(nullptr, retry_state_);
     retry_state_ = new NiceMock<MockRetryState>();
     return RetryStatePtr{retry_state_};

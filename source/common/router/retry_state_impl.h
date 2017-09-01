@@ -6,6 +6,7 @@
 #include "envoy/common/optional.h"
 #include "envoy/event/timer.h"
 #include "envoy/http/codec.h"
+#include "envoy/http/filter.h"
 #include "envoy/http/header_map.h"
 #include "envoy/router/router.h"
 #include "envoy/runtime/runtime.h"
@@ -22,7 +23,8 @@ public:
   static RetryStatePtr create(const RetryPolicy& route_policy, Http::HeaderMap& request_headers,
                               const Upstream::ClusterInfo& cluster, Runtime::Loader& runtime,
                               Runtime::RandomGenerator& random, Event::Dispatcher& dispatcher,
-                              Upstream::ResourcePriority priority);
+                              Upstream::ResourcePriority priority,
+                              Http::StreamDecoderFilterCallbacks& callbacks);
   ~RetryStateImpl();
 
   static uint32_t parseRetryOn(const std::string& config);
@@ -40,7 +42,8 @@ private:
   RetryStateImpl(const RetryPolicy& route_policy, Http::HeaderMap& request_headers,
                  const Upstream::ClusterInfo& cluster, Runtime::Loader& runtime,
                  Runtime::RandomGenerator& random, Event::Dispatcher& dispatcher,
-                 Upstream::ResourcePriority priority);
+                 Upstream::ResourcePriority priority,
+                 Http::StreamDecoderFilterCallbacks& callbacks);
 
   void enableBackoffTimer();
   void resetRetry();
@@ -57,6 +60,7 @@ private:
   DoRetryCallback callback_;
   Event::TimerPtr retry_timer_;
   Upstream::ResourcePriority priority_;
+  Http::StreamDecoderFilterCallbacks& callbacks_;
 };
 
 } // namespace Router

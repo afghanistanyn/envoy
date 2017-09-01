@@ -233,7 +233,8 @@ private:
                                          const Upstream::ClusterInfo& cluster,
                                          Runtime::Loader& runtime, Runtime::RandomGenerator& random,
                                          Event::Dispatcher& dispatcher,
-                                         Upstream::ResourcePriority priority) PURE;
+                                         Upstream::ResourcePriority priority,
+                                         Http::StreamDecoderFilterCallbacks& callbacks) PURE;
   Http::ConnectionPool::Instance* getConnPool();
   void maybeDoShadowing();
   void onRequestComplete();
@@ -279,7 +280,8 @@ private:
   RetryStatePtr createRetryState(const RetryPolicy& policy, Http::HeaderMap& request_headers,
                                  const Upstream::ClusterInfo& cluster, Runtime::Loader& runtime,
                                  Runtime::RandomGenerator& random, Event::Dispatcher& dispatcher,
-                                 Upstream::ResourcePriority priority) override;
+                                 Upstream::ResourcePriority priority,
+                                 Http::StreamDecoderFilterCallbacks& callbacks) override;
 };
 
 } // Router

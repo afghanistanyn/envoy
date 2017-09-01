@@ -226,7 +226,7 @@ public:
 class MockStreamFilterCallbacksBase {
 public:
   Event::MockDispatcher dispatcher_;
-  testing::NiceMock<AccessLog::MockRequestInfo> request_info_;
+  NiceMock<AccessLog::MockRequestInfo> request_info_;
   std::shared_ptr<Router::MockRoute> route_;
   std::string downstream_address_;
 };

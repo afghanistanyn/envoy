@@ -29,14 +29,15 @@ RetryStatePtr RetryStateImpl::create(const RetryPolicy& route_policy,
                                      const Upstream::ClusterInfo& cluster, Runtime::Loader& runtime,
                                      Runtime::RandomGenerator& random,
                                      Event::Dispatcher& dispatcher,
-                                     Upstream::ResourcePriority priority) {
+                                     Upstream::ResourcePriority priority,
+                                     Http::StreamDecoderFilterCallbacks& callbacks) {
   RetryStatePtr ret;
 
   // We short circuit here and do not both with an allocation if there is no chance we will retry.
   if (request_headers.EnvoyRetryOn() || request_headers.EnvoyRetryGrpcOn() ||
       route_policy.retryOn()) {
     ret.reset(new RetryStateImpl(route_policy, request_headers, cluster, runtime, random,
-                                 dispatcher, priority));
+                                 dispatcher, priority, callbacks));
   }
 
   request_headers.removeEnvoyRetryOn();
@@ -47,9 +48,10 @@ RetryStatePtr RetryStateImpl::create(const RetryPolicy& route_policy,
 RetryStateImpl::RetryStateImpl(const RetryPolicy& route_policy, Http::HeaderMap& request_headers,
                                const Upstream::ClusterInfo& cluster, Runtime::Loader& runtime,
                                Runtime::RandomGenerator& random, Event::Dispatcher& dispatcher,
-                               Upstream::ResourcePriority priority)
+                               Upstream::ResourcePriority priority,
+                               Http::StreamDecoderFilterCallbacks& callbacks)
     : cluster_(cluster), runtime_(runtime), random_(random), dispatcher_(dispatcher),
-      priority_(priority) {
+      priority_(priority), callbacks_(callbacks) {
 
   if (request_headers.EnvoyRetryOn()) {
     retry_on_ = parseRetryOn(request_headers.EnvoyRetryOn()->value().c_str());
@@ -153,6 +155,7 @@ bool RetryStateImpl::shouldRetry(const Http::HeaderMap* response_headers,
 
   if (!cluster_.resourceManager(priority_).retries().canCreate()) {
     cluster_.stats().upstream_rq_retry_overflow_.inc();
+    callbacks_.requestInfo().setResponseFlag(Http::AccessLog::ResponseFlag::UpstreamOverflow);
     return false;
   }
 

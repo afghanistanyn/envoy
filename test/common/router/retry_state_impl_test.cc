@@ -4,6 +4,7 @@
 #include "common/router/retry_state_impl.h"
 #include "common/upstream/resource_manager_impl.h"
 
+#include "test/mocks/http/mocks.h"
 #include "test/mocks/router/mocks.h"
 #include "test/mocks/runtime/mocks.h"
 #include "test/mocks/upstream/mocks.h"
@@ -28,8 +29,9 @@ public:
   }
 
   void setup(Http::HeaderMap& request_headers) {
-    state_ = RetryStateImpl::create(policy_, request_headers, cluster_, runtime_, random_,
-                                    dispatcher_, Upstream::ResourcePriority::Default);
+    state_ =
+        RetryStateImpl::create(policy_, request_headers, cluster_, runtime_, random_, dispatcher_,
+                               Upstream::ResourcePriority::Default, stream_callbacks_);
   }
 
   void expectTimerCreateAndEnable() {
@@ -46,6 +48,7 @@ public:
   RetryStatePtr state_;
   ReadyWatcher callback_ready_;
   RetryState::DoRetryCallback callback_;
+  NiceMock<Http::MockStreamDecoderFilterCallbacks> stream_callbacks_;
 
   const Optional<Http::StreamResetReason> no_reset_;
   const Optional<Http::StreamResetReason> remote_reset_{Http::StreamResetReason::RemoteReset};
@@ -186,6 +189,9 @@ TEST_F(RouterRetryStateImplTest, PolicyRetriable4xxRetry) {
   setup(request_headers);
   EXPECT_TRUE(state_->enabled());
 
+  EXPECT_CALL(stream_callbacks_.request_info_,
+              setResponseFlag(Http::AccessLog::ResponseFlag::UpstreamOverflow))
+      .Times(0);
   Http::TestHeaderMapImpl response_headers{{":status", "409"}};
   expectTimerCreateAndEnable();
   EXPECT_TRUE(state_->shouldRetry(&response_headers, no_reset_, callback_));
@@ -230,6 +236,8 @@ TEST_F(RouterRetryStateImplTest, NoAvailableRetries) {
   setup(request_headers);
   EXPECT_TRUE(state_->enabled());
 
+  EXPECT_CALL(stream_callbacks_.request_info_,
+              setResponseFlag(Http::AccessLog::ResponseFlag::UpstreamOverflow));
   EXPECT_FALSE(state_->shouldRetry(nullptr, connect_failure_, callback_));
   EXPECT_EQ(1UL, cluster_.stats().upstream_rq_retry_overflow_.value());
 }

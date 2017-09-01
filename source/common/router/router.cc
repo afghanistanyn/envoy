@@ -231,12 +231,11 @@ Http::FilterHeadersStatus Filter::decodeHeaders(Http::HeaderMap& headers, bool e
 
   route_entry_->finalizeRequestHeaders(headers);
   FilterUtility::setUpstreamScheme(headers, *cluster_);
-  retry_state_ =
-      createRetryState(route_entry_->retryPolicy(), headers, *cluster_, config_.runtime_,
-                       config_.random_, callbacks_->dispatcher(), route_entry_->priority());
+  retry_state_ = createRetryState(route_entry_->retryPolicy(), headers, *cluster_, config_.runtime_,
+                                  config_.random_, callbacks_->dispatcher(),
+                                  route_entry_->priority(), *callbacks_);
   do_shadowing_ = FilterUtility::shouldShadow(route_entry_->shadowPolicy(), config_.runtime_,
                                               callbacks_->streamId());
-
 #ifndef NVLOG
   headers.iterate(
       [](const Http::HeaderEntry& header, void* context) -> void {
@@ -767,9 +766,10 @@ RetryStatePtr
 ProdFilter::createRetryState(const RetryPolicy& policy, Http::HeaderMap& request_headers,
                              const Upstream::ClusterInfo& cluster, Runtime::Loader& runtime,
                              Runtime::RandomGenerator& random, Event::Dispatcher& dispatcher,
-                             Upstream::ResourcePriority priority) {
+                             Upstream::ResourcePriority priority,
+                             Http::StreamDecoderFilterCallbacks& callbacks) {
   return RetryStateImpl::create(policy, request_headers, cluster, runtime, random, dispatcher,
-                                priority);
+                                priority, callbacks);
 }
 
 void Filter::UpstreamRequest::setRequestEncoder(Http::StreamEncoder& request_encoder) {
